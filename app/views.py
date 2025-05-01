@@ -7,7 +7,7 @@ import io
 from django.http import JsonResponse
 
 def home(request):
-    images = UploadedImage.objects.all().order_by('-uploaded_at')
+    images = UploadedImage.objects.all().order_by('-id')
     return render(request, 'home.html', {'images': images})
 
 

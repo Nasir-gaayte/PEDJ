@@ -1,13 +1,16 @@
 from django.shortcuts import render, redirect, get_object_or_404
-from .models import UploadedImage
+
 from django.core.files.base import ContentFile
 from rembg import remove
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image
 import io
 from django.http import JsonResponse
 
+from app.models import UploadedImage
+
 def home(request):
-    images = UploadedImage.objects.all().order_by('-id')
+    images = UploadedImage.objects.all()
+    print(images)
     return render(request, 'home.html', {'images': images})
 
 
@@ -74,7 +77,7 @@ def delete_image(request, image_id):
     image = get_object_or_404(UploadedImage, id=image_id)
 
     # Delete the image from the model and filesystem
-    image.image.delete()  # This removes the file from the storage
+    # This removes the file from the storage
     image.delete()  # This removes the record from the database
 
     return redirect('home')  # Redirect back to the homepage

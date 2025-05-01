@@ -7,7 +7,7 @@
     </a>
     
     <div class="image-list">
-      
+        {% if images %}
             <ul>
                 {% for image in images %}
                     <li>
@@ -27,6 +27,8 @@
                     </li>
                 {% endfor %}
             </ul>
-       
+        {% else %}
+            <p>No images uploaded yet.</p>
+        {% endif %}
     </div>
 {% endblock %}

@@ -9,8 +9,8 @@ from django.http import JsonResponse
 from app.models import UploadedImage
 
 def home(request):
-    images = UploadedImage.objects.all()
-    print(images)
+    images = UploadedImage.objects.all().order_by('-id')
+
     return render(request, 'home.html', {'images': images})
 
 

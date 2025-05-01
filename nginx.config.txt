@@ -1,0 +1,29 @@
+upstream app_server {
+    server unix:/home/nasir/PEDJ/your_project.sock fail_timeout=0;
+    # OR if using TCP:
+    # server 127.0.0.1:8000 fail_timeout=0;
+}
+
+server {
+    listen 80;
+    server_name your_domain.com;
+
+    access_log /home/nasir/PEDJ/logs/nginx_access.log;
+    error_log /home/nasir/PEDJ/logs/nginx_error.log;
+
+    location /static/ {
+        alias /home/nasir/PEDJ/static/;
+    }
+
+    location /media/ {
+        alias /home/nasir/PEDJ/media/;
+    }
+
+    location / {
+        proxy_pass http://app_server;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}

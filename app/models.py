@@ -4,9 +4,9 @@ from django.dispatch import receiver
 import os
 
 class UploadedImage(models.Model):
-    original_image = models.ImageField(upload_to='originals/',default='originals/default.jpg')
+    original_image = models.ImageField(upload_to='originals/',default='originals/default.jpg', null=True, blank=True)
     processed_image = models.ImageField(upload_to='processed/', null=True, blank=True)
-    uploaded_at = models.DateTimeField(auto_now_add=True)
+    uploaded_at = models.DateTimeField(auto_now_add=True,null=True, blank=True)
 
     def __str__(self):
         return self.original_image.name

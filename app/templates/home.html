@@ -11,7 +11,7 @@
             <ul>
                 {% for image in images %}
                     <li>
-                        <img src="{{ original_image.image.url }}" alt="Image" width="200">
+                        <img src="{{ image.original_image.url }}" alt="Image" width="200">
                         <p>Uploaded: {{ image.uploaded_at }}</p>
                         
                         <!-- Edit Button -->

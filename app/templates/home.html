@@ -11,9 +11,7 @@
     </header>
 
     <div class="grid">
-        {% if images %}
-       
-        
+        {% if images.image %}
         {% for image in images %}
         <div class="card">
             <img src="{{ image.image.url }}" alt="Processed image">
@@ -35,10 +33,7 @@
                 </div>
             </div>
         </div>
-        {% empty %}
-        <div class="empty-state">
-            <p>No images uploaded yet</p>
-        </div>
+        
         {% endfor %}
         {% else %}
         <h2>No Images Found</h2>

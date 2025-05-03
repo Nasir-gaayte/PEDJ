@@ -9,7 +9,7 @@ from app.forms import ImageUploadForm
 from .models import UploadedImage
 
 def home(request):
-    images = UploadedImage.objects.all().order_by('-created_at')
+    images = UploadedImage.objects.all().order_by('-id')
     return render(request, 'home.html', {'images': images})
 
 def upload_image(request):

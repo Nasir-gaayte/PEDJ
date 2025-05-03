@@ -1,5 +1,4 @@
 from django.contrib import admin
-from app.models import UploadedImage, ImageTemplate
+from app.models import UploadedImage
 # Register your models here.
 admin.site.register(UploadedImage)
-admin.site.register(ImageTemplate)

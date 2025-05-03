@@ -1,0 +1,80 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="process-container">
+    <div class="process-header">
+        <h2>Process Image</h2>
+        <a href="{% url 'home' %}" class="btn">
+            <svg class="icon"><use href="#arrow-left"/></svg>
+            Back
+        </a>
+    </div>
+
+    <div class="image-preview">
+        <img src="{{ image.image.url }}" 
+             id="preview-image" 
+             alt="Image being processed">
+    </div>
+
+    {% if not image.processing_type %}
+    <div class="process-actions">
+        <button class="btn action-btn" data-action="remove_bg">
+            <svg class="icon"><use href="#magic-wand"/></svg>
+            Remove Background
+        </button>
+        <button class="btn action-btn" data-action="remove_fg">
+            <svg class="icon"><use href="#cut"/></svg>
+            Remove Foreground
+        </button>
+    </div>
+    {% endif %}
+
+    <div class="status-modal" id="loading">
+        <div class="spinner"></div>
+        <p>Processing image...</p>
+    </div>
+
+    <div class="status-modal error" id="error">
+        <svg class="icon"><use href="#error"/></svg>
+        <p id="error-message"></p>
+    </div>
+</div>
+
+<script>
+document.querySelectorAll('.action-btn').forEach(btn => {
+    btn.addEventListener('click', async () => {
+        const action = btn.dataset.action;
+        const formData = new FormData();
+        formData.append('action', action);
+        
+        document.getElementById('loading').style.display = 'flex';
+        document.getElementById('error').style.display = 'none';
+
+        try {
+            const response = await fetch("{% url 'process_image' image.id %}", {
+                method: 'POST',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                },
+                body: formData
+            });
+
+            const data = await response.json();
+            
+            if (!response.ok) throw new Error(data.error || 'Processing failed');
+            
+            document.getElementById('preview-image').src = data.image_url + '?' + new Date().getTime();
+            window.location.reload(); // Update processing status
+            
+        } catch (error) {
+            document.getElementById('error-message').textContent = error.message;
+            document.getElementById('error').style.display = 'flex';
+        } finally {
+            document.getElementById('loading').style.display = 'none';
+        }
+    });
+});
+</script>
+{% endblock %}

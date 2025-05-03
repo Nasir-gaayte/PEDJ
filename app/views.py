@@ -1,83 +1,65 @@
 from django.shortcuts import render, redirect, get_object_or_404
-
 from django.core.files.base import ContentFile
 from rembg import remove
-from PIL import Image
+from PIL import Image, ImageOps
 import io
 from django.http import JsonResponse
-
-from app.models import UploadedImage
+from .models import UploadedImage
 
 def home(request):
-    images = UploadedImage.objects.all().order_by('-id')
-
+    images = UploadedImage.objects.all().order_by('-created_at')
     return render(request, 'home.html', {'images': images})
-
 
 def upload_image(request):
     if request.method == 'POST':
-        image = request.FILES['image']
-        uploaded_image = UploadedImage.objects.create(original_image=image)
-        return redirect('edit_image', image_id=uploaded_image.id)
-    return render(request, 'upload_image.html')
+        uploaded_file = request.FILES['image']
+        UploadedImage.objects.create(image=uploaded_file)
+        return redirect('home')
+    return render(request, 'upload.html')
 
-
-def edit_image(request, image_id):
-    image = get_object_or_404(UploadedImage, id=image_id)
-
+def process_image(request, pk):
+    image = get_object_or_404(UploadedImage, pk=pk)
+    
     if request.method == 'POST' and request.headers.get('x-requested-with') == 'XMLHttpRequest':
+        if image.processing_type:
+            return JsonResponse({'error': 'Image already processed'}, status=400)
+            
         action = request.POST.get('action')
+        
+        try:
+            with Image.open(image.image.path) as img:
+                if action == 'remove_bg':
+                    processed = remove(img)
+                    processing_type = 'bg_removed'
+                elif action == 'remove_fg':
+                    alpha = remove(img).getchannel('A')
+                    inverted_alpha = ImageOps.invert(alpha)
+                    img.putalpha(inverted_alpha)
+                    processed = img
+                    processing_type = 'fg_removed'
+                else:
+                    return JsonResponse({'error': 'Invalid action'}, status=400)
 
-        if action in ['remove_bg', 'remove_fg']:
-            try:
-                # Process the original image
-                with open(image.original_image.path, 'rb') as img_file:
-                    input_image = img_file.read()
-                    result = remove(input_image)
-                    img_with_no_bg = Image.open(io.BytesIO(result))
+                img_io = io.BytesIO()
+                processed.save(img_io, format='PNG')
+                img_io.seek(0)
+                
+                image.image.save(
+                    f'processed_{image.image.name}',
+                    ContentFile(img_io.read()),
+                    save=False
+                )
+                image.processing_type = processing_type
+                image.save()
 
-                    if action == 'remove_bg':
-                        # Save the background-removed image
-                        img_io = io.BytesIO()
-                        img_with_no_bg.save(img_io, 'PNG')
-                        img_io.seek(0)
-                        image.processed_image.save(
-                            f"processed_{image.original_image.name}",
-                            ContentFile(img_io.read()),
-                            save=True
-                        )
-                    elif action == 'remove_fg':
-                        # Invert the alpha channel to remove foreground
-                        alpha = img_with_no_bg.getchannel('A')
-                        inverted_alpha = Image.eval(alpha, lambda x: 255 - x)
+            return JsonResponse({'image_url': image.image.url})
+            
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
+    
+    return render(request, 'process.html', {'image': image})
 
-                        # Apply inverted alpha to original image
-                        original_img = Image.open(image.original_image.path).convert('RGBA')
-                        original_img.putalpha(inverted_alpha)
-
-                        # Save the foreground-removed image
-                        img_io = io.BytesIO()
-                        original_img.save(img_io, 'PNG')
-                        img_io.seek(0)
-                        image.processed_image.save(
-                            f"processed_{image.original_image.name}",
-                            ContentFile(img_io.read()),
-                            save=True
-                        )
-
-                return JsonResponse({'image_url': image.processed_image.url})
-            except Exception as e:
-                return JsonResponse({'error': str(e)}, status=500)
-
-    context = {'image': image}
-    return render(request, 'edit_image.html', context)
-
-# Delete image view
-def delete_image(request, image_id):
-    image = get_object_or_404(UploadedImage, id=image_id)
-
-    # Delete the image from the model and filesystem
-    # This removes the file from the storage
-    image.delete()  # This removes the record from the database
-
-    return redirect('home')  # Redirect back to the homepage
+def delete_image(request, pk):
+    image = get_object_or_404(UploadedImage, pk=pk)
+    image.delete()
+    return redirect('home')

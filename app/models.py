@@ -4,29 +4,30 @@ from django.dispatch import receiver
 import os
 
 class UploadedImage(models.Model):
-    original_image = models.ImageField(upload_to='originals/', null=True, blank=True)
-    processed_image = models.ImageField(upload_to='processed/', null=True, blank=True)
-    uploaded_at = models.DateTimeField(auto_now_add=True,null=True, blank=True)
+    PROCESSING_CHOICES = [
+        ('bg_removed', 'Background Removed'),
+        ('fg_removed', 'Foreground Removed'),
+    ]
+    
+    image = models.ImageField(upload_to='uploads/')
+    processing_type = models.CharField(
+        max_length=20, 
+        choices=PROCESSING_CHOICES, 
+        null=True, 
+        blank=True
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return self.original_image.name
+        return f"Image {self.id} - {self.processing_type or 'Original'}"
 
 @receiver(pre_save, sender=UploadedImage)
-def delete_old_processed_image(sender, instance, **kwargs):
+def delete_old_file(sender, instance, **kwargs):
     if instance.pk:
         try:
             old_instance = UploadedImage.objects.get(pk=instance.pk)
+            if old_instance.image != instance.image:
+                if os.path.isfile(old_instance.image.path):
+                    os.remove(old_instance.image.path)
         except UploadedImage.DoesNotExist:
             return
-        
-        old_processed = old_instance.processed_image
-        new_processed = instance.processed_image
-        if old_processed and old_processed != new_processed:
-            if os.path.isfile(old_processed.path):
-                os.remove(old_processed.path)
-                
-                
-class ImageTemplate(models.Model):
-    name = models.CharField(max_length=255)
-    template_image = models.ImageField(upload_to='templates/')
-    created_at = models.DateTimeField(auto_now_add=True)
